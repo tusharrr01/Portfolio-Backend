@@ -36,13 +36,24 @@ router.post('/send-email', async (req, res) => {
       });
     }
 
+    // Check if environment variables are set
+    if (!process.env.GMAIL_EMAIL || !process.env.GMAIL_PASSWORD) {
+      console.error('Missing Gmail credentials in environment variables');
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error: Gmail credentials not set'
+      });
+    }
+
     // Create Nodemailer transporter
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.GMAIL_EMAIL,
         pass: process.env.GMAIL_PASSWORD
-      }
+      },
+      connectionTimeout: 15000,
+      socketTimeout: 15000
     });
 
     // Email content
