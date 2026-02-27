@@ -45,15 +45,20 @@ router.post('/send-email', async (req, res) => {
       });
     }
 
-    // Create Nodemailer transporter
+    // Create Nodemailer transporter with enhanced settings
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // TLS
       auth: {
         user: process.env.GMAIL_EMAIL,
         pass: process.env.GMAIL_PASSWORD
       },
-      connectionTimeout: 15000,
-      socketTimeout: 15000
+      connectionTimeout: 10000,
+      socketTimeout: 10000,
+      tls: {
+        rejectUnauthorized: false  // This helps with some server issues
+      }
     });
 
     // Email content
@@ -83,11 +88,13 @@ router.post('/send-email', async (req, res) => {
   } catch (error) {
     console.error('Email sending error:', error.message);
     console.error('Error code:', error.code);
+    console.error('Error response:', error.response?.data);
     console.error('Gmail user:', process.env.GMAIL_EMAIL);
     res.status(500).json({
       success: false,
       message: 'Failed to send email. Please try again later.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      errorDetails: error.message,  // Remove this in production
+      errorCode: error.code
     });
   }
 });
