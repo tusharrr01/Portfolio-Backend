@@ -37,7 +37,7 @@ Express.js backend that powers the **contact form** for my portfolio. It exposes
 
 ```json
 {
-  "name": "Your Name",
+  "name": "Your N ame",
   "email": "your-email@example.com",
   "message": "Your message..."
 }

@@ -70,10 +70,13 @@ router.post('/send-email', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Email sending error:', error);
+    console.error('Email sending error:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Gmail user:', process.env.GMAIL_EMAIL);
     res.status(500).json({
       success: false,
-      message: 'Failed to send email. Please try again later.'
+      message: 'Failed to send email. Please try again later.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
