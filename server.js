@@ -13,23 +13,50 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// CORS configuration
-const corsOptions = {
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://localhost:5000',
-    process.env.CLIENT_URL || 'https://tusharportfolio.vercel.app',
-    ...(NODE_ENV === 'development' ? ['*'] : [])
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  maxAge: 3600
+// Normalize CLIENT_URL by removing trailing slash
+const normalizeUrl = (url) => {
+  if (!url) return '';
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 };
 
-// Middleware - Order matters!
+// CORS configuration
+const clientUrl = normalizeUrl(process.env.CLIENT_URL) || 'https://portfolio-tushar-kaklotar.vercel.app';
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:5000',
+      clientUrl
+    ];
+
+    // In development, allow any origin
+    if (NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+
+    // In production, check origin
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log(`[CORS] Rejected origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  exposedHeaders: ['Content-Type', 'X-Custom-Header'],
+  maxAge: 3600,
+  optionsSuccessStatus: 200
+};
+
+// Enable CORS with proper configuration
 app.use(cors(corsOptions));
+
+// Handle OPTIONS requests explicitly
+app.options('*', cors(corsOptions));
 
 // Limit request body size to prevent abuse
 app.use(express.json({ limit: '10mb' }));
@@ -50,7 +77,7 @@ app.use((req, res, next) => {
   
   // Log request in development
   if (NODE_ENV === 'development') {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.get('origin')}`);
   }
   
   next();
@@ -114,6 +141,7 @@ const server = app.listen(PORT, () => {
 ║  Environment: ${NODE_ENV.padEnd(28)}║
 ║  Port: ${String(PORT).padEnd(34)}║
 ║  URL: http://localhost:${String(PORT).padEnd(23)}║
+║  Allowed Origin: ${clientUrl.padEnd(22)}║
 ╚════════════════════════════════════════╝
   `);
 });
