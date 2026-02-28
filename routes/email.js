@@ -249,15 +249,32 @@ Sent on ${new Date().toLocaleString()}
       `
     };
 
-    // Send email with timeout
-    await Promise.race([
-      emailTransporter.sendMail(mailOptions),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Email send timeout')), 30000)
-      )
-    ]);
+    // Optional: verify transporter connectivity (short timeout)
+    try {
+      const verifyStart = Date.now();
+      await Promise.race([
+        emailTransporter.verify(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP verify timeout')), 10000))
+      ]);
+      console.log(`[Email Service] Transporter verified in ${Date.now() - verifyStart}ms`);
+    } catch (vErr) {
+      console.warn('[Email Service] Transporter verify warning:', vErr.message);
+      // continue — sometimes verify fails on some hosts but sendMail still works
+    }
 
-    console.log(`[Email Service] Email sent successfully from ${escapedEmail}`);
+    // Send email with increased timeout and timing logs
+    const sendStart = Date.now();
+    try {
+      const sendPromise = emailTransporter.sendMail(mailOptions);
+      await Promise.race([
+        sendPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Email send timeout')), 60000))
+      ]);
+      console.log(`[Email Service] Email sent successfully from ${escapedEmail} in ${Date.now() - sendStart}ms`);
+    } catch (sendErr) {
+      console.error('[Email Service] sendMail failed after', Date.now() - sendStart, 'ms');
+      throw sendErr; // bubble up to outer catch for standardized handling
+    }
 
     return res.status(200).json({
       success: true,
