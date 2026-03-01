@@ -38,7 +38,7 @@ if (process.env.SENDGRID_API_KEY) {
 
 // rate limiter
 const rateLimitMap = new Map();
-const checkRateLimit = (id, max = 5, windowMs = 3600000) => {
+const checkRateLimit = (id, max = 10, windowMs = 3600000) => {
   const now = Date.now();
   if (!rateLimitMap.has(id)) rateLimitMap.set(id, []);
   const times = rateLimitMap.get(id).filter(t => now - t < windowMs);
